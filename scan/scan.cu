@@ -53,7 +53,7 @@ void exclusive_scan(int* input, int N, int* result)
     // on the CPU.  Your implementation will need to make multiple calls
     // to CUDA kernel functions (that you must write) to implement the
     // scan.
-     const int threadsPerBlock = 512;
+    const int threadsPerBlock = 512;
 
     // Notice the round up here.  The code needs to compute the number
     // of threads blocks needed such that there is one thread per
