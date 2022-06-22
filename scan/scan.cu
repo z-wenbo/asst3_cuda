@@ -95,7 +95,7 @@ void exclusive_scan(int* input, int N, int* result)
     for (int two_d = 1; two_d <= N/2; two_d*=2) {
         int two_dplus1 = 2*two_d;
         int blocks = (((N + two_dplus1 - 1) / two_dplus1) + threadsPerBlock - 1) / threadsPerBlock;
-        upscan_kernel<<blocks, threadsPerBlock>>(two_d, two_dplus1, result, N);
+        upscan_kernel<<<blocks, threadsPerBlock>>>(two_d, two_dplus1, result, N);
         cudaDeviceSynchronize();
     }
 
@@ -104,7 +104,7 @@ void exclusive_scan(int* input, int N, int* result)
     for (int two_d = nextPow2(N)/2; two_d >= 1; two_d /= 2) {
         int two_dplus1 = 2*two_d;
         int blocks = (((N + two_dplus1 - 1) / two_dplus1) + threadsPerBlock - 1) / threadsPerBlock;
-        downscan_kernel<<blocks, threadsPerBlock>>(two_d, two_dplus1, result, N);
+        downscan_kernel<<<blocks, threadsPerBlock>>>(two_d, two_dplus1, result, N);
         cudaDeviceSynchronize();
     }
 
