@@ -53,10 +53,68 @@ void exclusive_scan(int* input, int N, int* result)
     // on the CPU.  Your implementation will need to make multiple calls
     // to CUDA kernel functions (that you must write) to implement the
     // scan.
+     const int threadsPerBlock = 512;
+
+    // Notice the round up here.  The code needs to compute the number
+    // of threads blocks needed such that there is one thread per
+    // element of the arrays.  This code is written to work for values
+    // of N that are not multiples of threadPerBlock.
+    for (int two_d = 1; two_d <= N/2; two_d*=2) {
+        int two_dplus1 = 2*two_d;
+        int blocks = (((N + two_dplus1 - 1) / two_dplus1) + threadsPerBlock - 1) / threadsPerBlock;
+        upscan_kernel<<blocks, threadsPerBlock>>(two_d, two_dplus1, result, N);
+        cudaDeviceSynchronize();
+    }
+
+    result[N-1] = 0;
+
+    for (int two_d = nextPow2(N)/2; two_d >= 1; two_d /= 2) {
+        int two_dplus1 = 2*two_d;
+        parallel_for (int i = 0; i < N; i += two_dplus1) {
+            int t = output[i+two_d-1];
+            int blocks = (((N + two_dplus1 - 1) / two_dplus1) + threadsPerBlock - 1) / threadsPerBlock;
+            downscan_kernel<<blocks, threadsPerBlock>>(two_d, two_dplus1, result, N);
+            cudaDeviceSynchronize();
+        }
+    }
 
 
 }
+__global__ void
+upscan_kernel(int two_d, int two_dplus1, int* result, int N) {
 
+    // compute overall thread index from position of thread in current
+    // block, and given the block we are in (in this example only a 1D
+    // calculation is needed so the code only looks at the .x terms of
+    // blockDim and threadIdx.
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    
+    // this check is necessary to make the code work for values of N
+    // that are not a multiple of the thread block size (blockDim.x)
+    if (index * two_dplus1  < N)
+       result[index * two_dplus1 + two_dplus1 - 1] += result[index * two_dplus1 + two_d - 1];
+}
+
+__global__ void
+downscan_kernel(int two_d, int two_dplus1, int* output, int N) {
+
+    // compute overall thread index from position of thread in current
+    // block, and given the block we are in (in this example only a 1D
+    // calculation is needed so the code only looks at the .x terms of
+    // blockDim and threadIdx.
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    
+    // this check is necessary to make the code work for values of N
+    // that are not a multiple of the thread block size (blockDim.x)
+    if (index * two_dplus1  < N){
+        int t = output[index*two_dplus1+two_d-1];
+        output[index*two_dplus1+two_d-1] = output[index*two_dplus1+two_dplus1-1];
+        output[index*two_dplus1+two_dplus1-1] += t;
+    }
+       result[index * two_dplus1 + two_dplus1 - 1] += result[index * two_dplus1 + two_d - 1];
+}
 
 //
 // cudaScan --
