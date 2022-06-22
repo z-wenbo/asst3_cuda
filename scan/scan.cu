@@ -26,6 +26,39 @@ static inline int nextPow2(int n) {
     n++;
     return n;
 }
+__global__ void upscan_kernel(int two_d, int two_dplus1, int* result, int N) {
+
+    // compute overall thread index from position of thread in current
+    // block, and given the block we are in (in this example only a 1D
+    // calculation is needed so the code only looks at the .x terms of
+    // blockDim and threadIdx.
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    
+    // this check is necessary to make the code work for values of N
+    // that are not a multiple of the thread block size (blockDim.x)
+    if (index * two_dplus1  < N)
+       result[index * two_dplus1 + two_dplus1 - 1] += result[index * two_dplus1 + two_d - 1];
+}
+
+__global__ void downscan_kernel(int two_d, int two_dplus1, int* output, int N) {
+
+    // compute overall thread index from position of thread in current
+    // block, and given the block we are in (in this example only a 1D
+    // calculation is needed so the code only looks at the .x terms of
+    // blockDim and threadIdx.
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    
+    // this check is necessary to make the code work for values of N
+    // that are not a multiple of the thread block size (blockDim.x)
+    if (index * two_dplus1  < N){
+        int t = output[index*two_dplus1+two_d-1];
+        output[index*two_dplus1+two_d-1] = output[index*two_dplus1+two_dplus1-1];
+        output[index*two_dplus1+two_dplus1-1] += t;
+    }
+}
+
 
 // exclusive_scan --
 //
@@ -76,40 +109,6 @@ void exclusive_scan(int* input, int N, int* result)
     }
 
 
-}
-__global__ void
-upscan_kernel(int two_d, int two_dplus1, int* result, int N) {
-
-    // compute overall thread index from position of thread in current
-    // block, and given the block we are in (in this example only a 1D
-    // calculation is needed so the code only looks at the .x terms of
-    // blockDim and threadIdx.
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    
-    // this check is necessary to make the code work for values of N
-    // that are not a multiple of the thread block size (blockDim.x)
-    if (index * two_dplus1  < N)
-       result[index * two_dplus1 + two_dplus1 - 1] += result[index * two_dplus1 + two_d - 1];
-}
-
-__global__ void
-downscan_kernel(int two_d, int two_dplus1, int* output, int N) {
-
-    // compute overall thread index from position of thread in current
-    // block, and given the block we are in (in this example only a 1D
-    // calculation is needed so the code only looks at the .x terms of
-    // blockDim and threadIdx.
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    
-    // this check is necessary to make the code work for values of N
-    // that are not a multiple of the thread block size (blockDim.x)
-    if (index * two_dplus1  < N){
-        int t = output[index*two_dplus1+two_d-1];
-        output[index*two_dplus1+two_d-1] = output[index*two_dplus1+two_dplus1-1];
-        output[index*two_dplus1+two_dplus1-1] += t;
-    }
 }
 
 //
