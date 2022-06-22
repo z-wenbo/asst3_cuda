@@ -77,6 +77,7 @@ void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultar
     //
     cudaMalloc(&device_x, N * sizeof(float));
     cudaMalloc(&device_y, N * sizeof(float));
+    cudaMalloc(&device_result, N * sizeof(float));
     // start timing after allocation of device memory
     double startTime = CycleTimer::currentSeconds();
 
@@ -113,7 +114,7 @@ void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultar
     //
     cudaFree(device_x);
     cudaFree(device_y);
-    
+    cudaFree(device_result);
 }
 
 void printCudaInfo() {
